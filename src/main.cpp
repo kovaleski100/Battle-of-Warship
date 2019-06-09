@@ -354,8 +354,8 @@ int main(int argc, char* argv[])
 
         // Abaixo definimos as varáveis que efetivamente definem a câmera virtual.
         // Veja slides 172-182 do documento "Aula_08_Sistemas_de_Coordenadas.pdf".
-        glm::vec4 camera_position_c  = glm::vec4(x,y,z,1.0f); // Ponto "c", centro da câmera
-        glm::vec4 camera_lookat_l    = glm::vec4(2*5.0f,0.0f,2*5.0f,1.0f); // Ponto "l", para onde a câmera (look-at) estará sempre olhando
+        glm::vec4 camera_lookat_l    = glm::vec4(10.0f,0.0f,10.0f,1.0f); // Ponto "l", para onde a câmera (look-at) estará sempre olhando
+        glm::vec4 camera_position_c  = glm::vec4(x,10,z,0.0f) + camera_lookat_l; // Ponto "c", centro da câmera
         glm::vec4 camera_view_vector = camera_lookat_l - camera_position_c; // Vetor "view", sentido para onde a câmera está virada
         glm::vec4 camera_up_vector   = glm::vec4(0.0f,1.0f,0.0f,0.0f); // Vetor "up" fixado para apontar para o "céu" (eito Y global)
 
@@ -403,12 +403,12 @@ int main(int argc, char* argv[])
 #define SPHERE 0
 #define BUNNY  1
 #define PLANE  2
-#define rsphare 10.0
+#define rsphare 16
 
 
         // Desenhamos o modelo da esfera
         glDisable(GL_CULL_FACE);
-        model = model * Matrix_Scale(rsphare,rsphare,rsphare);
+        model = model * Matrix_Translate(10,0,10) * Matrix_Scale(rsphare,rsphare,rsphare);
         glUniformMatrix4fv(model_uniform, 1, GL_FALSE, glm::value_ptr(model));
         glUniform1i(object_id_uniform, SPHERE);
         DrawVirtualObject("sphere");
@@ -422,11 +422,11 @@ int main(int argc, char* argv[])
 
         // Desenhamos o plano do chão
 
-        grid Chao[9][9];
+        grid Chao[10][10];
 
-        for(int i = 1; i<9; i++)
+        for(int i = 0; i<10; i++)
         {
-            for(int j = 1; j<9; j++)
+            for(int j = 0; j<10; j++)
             {
                 Chao[i][j].pos = glm::vec4(i*2,0.0,j*2,1.0f);
                 model = Matrix_Translate(1.0f,0.0f,1.0f);
