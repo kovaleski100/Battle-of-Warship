@@ -205,7 +205,7 @@ GLint projection_uniform;
 GLint object_id_uniform;
 GLint bbox_min_uniform;
 GLint bbox_max_uniform;
-glm::vec4 camera_position_c  = glm::vec4(1,1,1,1.0f);
+glm::vec4 camera_position_c  = glm::vec4(10,10,10,1.0f);
 glm::vec4 camera_lookat_l = glm::vec4(10.0f,1.0f,10.0f,0.0f);
 glm::vec4 camera_up_vector   = glm::vec4(0.0f,1.0f,0.0f,0.0f);
 glm::vec4 camera_view_vector;
@@ -386,7 +386,7 @@ int main(int argc, char* argv[])
             camera_lookat_l.z += z;
 
             camera_lookat_l = camera_lookat_l/norm(camera_lookat_l);
-            camera_position_c  = glm::vec4(10,10,10,1.0f);
+            ///camera_position_c  = glm::vec4(10,10,10,1.0f);
             camera_view_vector = - camera_lookat_l; // Vetor "view", sentido para onde a câmera está virada
             view = Matrix_Camera_View(camera_position_c, camera_view_vector, camera_up_vector);
         }
@@ -1260,21 +1260,39 @@ void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mod)
         fprintf(stdout,"Shaders recarregados!\n");
         fflush(stdout);
     }
-    else if(key == GLFW_KEY_A && action == GLFW_PRESS)
+    if(key == GLFW_KEY_A && action == GLFW_PRESS)
     {
         camera_position_c = camera_position_c + 0.1f*crossproduct(camera_lookat_l, camera_up_vector);
+
+        printf("%f\n",norm(camera_position_c-glm::vec4(10.0f,10.0f,10.0f,0)));
+        if(norm(camera_position_c-glm::vec4(10.0f,10.0f,10.0f,0))>10)
+        {
+            camera_position_c = camera_position_c - 0.1f*crossproduct(camera_lookat_l, camera_up_vector);
+        }
     }
-    else if(key == GLFW_KEY_D && action == GLFW_PRESS)
+    if(key == GLFW_KEY_D && action == GLFW_PRESS)
     {
         camera_position_c = camera_position_c - 0.1f*crossproduct(camera_lookat_l, camera_up_vector);
+        if(norm(camera_position_c-glm::vec4(10.0f,10.0f,10.0f,0))>10)
+        {
+            camera_position_c = camera_position_c + 0.1f*crossproduct(camera_lookat_l, camera_up_vector);
+        }
     }
-    else if(key == GLFW_KEY_S && action == GLFW_PRESS)
+    if(key == GLFW_KEY_S && action == GLFW_PRESS)
     {
         camera_position_c = camera_position_c + 0.1f*camera_lookat_l;
+        if(norm(camera_position_c-glm::vec4(10.0f,10.0f,10.0f,0))>10)
+        {
+            camera_position_c = camera_position_c - 0.1f*camera_lookat_l;
+        }
     }
-    else if(key == GLFW_KEY_W && action == GLFW_PRESS)
+    if(key == GLFW_KEY_W && action == GLFW_PRESS)
     {
         camera_position_c = camera_position_c - 0.1f*camera_lookat_l;
+        if(norm(camera_position_c-glm::vec4(10.0f,10.0f,10.0f,0))>10)
+        {
+            camera_position_c = camera_position_c + 0.1f*camera_lookat_l;
+        }
     }
 }
 
