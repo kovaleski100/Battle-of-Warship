@@ -289,6 +289,7 @@ int main(int argc, char* argv[])
     // Carregamos duas imagens para serem utilizadas como textura
     LoadTextureImage("../../data/tc-earth_daymap_surface.jpg");      // TextureImage0
     LoadTextureImage("../../data/tc-earth_nightmap_citylights.gif"); // TextureImage1
+    LoadTextureImage("../../data/mar.jpg"); // TextureImage1
 
     // Construímos a representação de objetos geométricos através de malhas de triângulos
     ObjModel spheremodel("../../data/sphere.obj");
@@ -302,6 +303,10 @@ int main(int argc, char* argv[])
     ObjModel planemodel("../../data/plane.obj");
     ComputeNormals(&planemodel);
     BuildTrianglesAndAddToVirtualScene(&planemodel);
+
+    ObjModel cubemodel("../../data/cubeira.obj");
+    ComputeNormals(&cubemodel);
+    BuildTrianglesAndAddToVirtualScene(&cubemodel);
 
     if ( argc > 1 )
     {
@@ -337,6 +342,19 @@ int main(int argc, char* argv[])
             Chao[i][j].pos = glm::vec4(i*2,0.0,j*2,1.0f);
             Chao[i][j].model = Matrix_Translate(Chao[i][j].pos.x, Chao[i][j].pos.y, Chao[i][j].pos.z);
         }
+    }
+
+    barco barco[5];
+
+    for(int i = 0; i<5; i++)
+    {
+        int x = rand()%10;
+        int y = rand()%10;
+        printf("%d %d\n", x,y);
+
+        barco[i].model = Chao[x][y].model*Matrix_Translate(0,0.25f,0);
+        barco[i].pos = Chao[x][y].pos;
+        Chao[x][y].ship = barco[i];
     }
 
     // Ficamos em loop, renderizando, até que o usuário feche a janela
@@ -431,6 +449,7 @@ int main(int argc, char* argv[])
 #define BUNNY  1
 #define PLANE  2
 #define rsphare 16
+#define CUBO 4
         glm::mat4 model = Matrix_Identity();
 
         // Desenhamos o modelo da esfera
@@ -460,9 +479,14 @@ int main(int argc, char* argv[])
                 DrawVirtualObject("plane");
             }
         }
+        for(int i = 0; i<5; i++)
+        {
+            glUniformMatrix4fv(model_uniform, 1, GL_FALSE, glm::value_ptr(barco[i].model));
+            glUniform1i(object_id_uniform, CUBO);
+            DrawVirtualObject("ship");
+        }
 
         glDisable(GL_CULL_FACE);
-
         // Pegamos um vértice com coordenadas de modelo (0.5, 0.5, 0.5, 1) e o
         // passamos por todos os sistemas de coordenadas armazenados nas
         // matrizes the_model, the_view, e the_projection; e escrevemos na tela
@@ -1260,36 +1284,36 @@ void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mod)
         fprintf(stdout,"Shaders recarregados!\n");
         fflush(stdout);
     }
-    if(key == GLFW_KEY_A && action == GLFW_PRESS)
+    if(key == GLFW_KEY_A)
     {
         camera_position_c = camera_position_c + 0.1f*crossproduct(camera_lookat_l, camera_up_vector);
 
         printf("%f\n",norm(camera_position_c-glm::vec4(10.0f,10.0f,10.0f,0)));
-        if(norm(camera_position_c-glm::vec4(10.0f,10.0f,10.0f,0))>10)
+        if(norm(camera_position_c-glm::vec4(10.0f,0.0f,10.0f,0))>15)
         {
             camera_position_c = camera_position_c - 0.1f*crossproduct(camera_lookat_l, camera_up_vector);
         }
     }
-    if(key == GLFW_KEY_D && action == GLFW_PRESS)
+    if(key == GLFW_KEY_D)
     {
         camera_position_c = camera_position_c - 0.1f*crossproduct(camera_lookat_l, camera_up_vector);
-        if(norm(camera_position_c-glm::vec4(10.0f,10.0f,10.0f,0))>10)
+        if(norm(camera_position_c-glm::vec4(10.0f,0.0f,10.0f,0))>15)
         {
             camera_position_c = camera_position_c + 0.1f*crossproduct(camera_lookat_l, camera_up_vector);
         }
     }
-    if(key == GLFW_KEY_S && action == GLFW_PRESS)
+    if(key == GLFW_KEY_S)
     {
         camera_position_c = camera_position_c + 0.1f*camera_lookat_l;
-        if(norm(camera_position_c-glm::vec4(10.0f,10.0f,10.0f,0))>10)
+        if(norm(camera_position_c-glm::vec4(10.0f,0.0f,10.0f,0))>15)
         {
             camera_position_c = camera_position_c - 0.1f*camera_lookat_l;
         }
     }
-    if(key == GLFW_KEY_W && action == GLFW_PRESS)
+    if(key == GLFW_KEY_W)
     {
         camera_position_c = camera_position_c - 0.1f*camera_lookat_l;
-        if(norm(camera_position_c-glm::vec4(10.0f,10.0f,10.0f,0))>10)
+        if(norm(camera_position_c-glm::vec4(10.0f,0.0f,10.0f,0))>15)
         {
             camera_position_c = camera_position_c + 0.1f*camera_lookat_l;
         }

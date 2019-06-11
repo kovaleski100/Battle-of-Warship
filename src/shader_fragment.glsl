@@ -22,6 +22,7 @@ uniform mat4 projection;
 #define SPHERE 0
 #define BUNNY  1
 #define PLANE  2
+#define CUBO 4
 uniform int object_id;
 
 // Parâmetros da axis-aligned bounding box (AABB) do modelo
@@ -68,6 +69,8 @@ void main()
     float U = 0.0;
     float V = 0.0;
 
+    vec3 Kd0;
+
     if ( object_id == SPHERE )
     {
         // PREENCHA AQUI as coordenadas de textura da esfera, computadas com
@@ -102,6 +105,7 @@ void main()
 
         U = (theta +M_PI)/(2.0*M_PI);
         V = (phi + (M_PI_2))/M_PI;
+        Kd0 = texture(TextureImage0, vec2(U,V)).rgb;
     }
     else if ( object_id == BUNNY )
     {
@@ -125,18 +129,39 @@ void main()
 
         U = (position_model.x-minx)/(maxx-minx);
         V = (position_model.y-miny)/(maxy-miny);
+
+        Kd0 = texture(TextureImage0, vec2(U,V)).rgb;
     }
     else if ( object_id == PLANE )
     {
         // Coordenadas de textura do plano, obtidas do arquivo OBJ.
         U = texcoords.x;
         V = texcoords.y;
+
+        Kd0 = texture(TextureImage2, vec2(U,V)).rgb;
+
+    }
+    else if(object_id == CUBO)
+    {
+        float minx = bbox_min.x;
+        float maxx = bbox_max.x;
+
+        float miny = bbox_min.y;
+        float maxy = bbox_max.y;
+
+        float minz = bbox_min.z;
+        float maxz = bbox_max.z;
+
+        U = (position_model.x-minx)/(maxx-minx);
+        V = (position_model.y-miny)/(maxy-miny);
+
+        Kd0 = vec3(1,0,0);
     }
 
     // Obtemos a refletância difusa a partir da leitura da imagem TextureImage0
 
 
-    vec3 Kd0 = texture(TextureImage0, vec2(U,V)).rgb;
+
 
     // Equação de Iluminação
     float lambert = max(0,dot(n,l));
