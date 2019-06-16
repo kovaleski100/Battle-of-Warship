@@ -135,6 +135,10 @@ void MouseButtonCallback(GLFWwindow* window, int button, int action, int mods);
 void CursorPosCallback(GLFWwindow* window, double xpos, double ypos);
 void ScrollCallback(GLFWwindow* window, double xoffset, double yoffset);
 
+glm::mat4 projectionMatrix;
+glm::mat4 viewMatrix;
+
+
 // Definimos uma estrutura que armazenará dados necessários para renderizar
 // cada objeto da cena virtual.
 struct SceneObject
@@ -212,6 +216,8 @@ glm::vec4 camera_view_vector;
 
 // Número de texturas carregadas pela função LoadTextureImage()
 GLuint g_NumLoadedTextures = 0;
+
+//
 
 int main(int argc, char* argv[])
 {
@@ -436,6 +442,9 @@ int main(int argc, char* argv[])
             float l = -r;
             projection = Matrix_Orthographic(l, r, b, t, nearplane, farplane);
         }
+
+        projectionMatrix = projection;
+        viewMatrix = view;
 
         // Transformação identidade de modelagem
 
@@ -1080,6 +1089,33 @@ void MouseButtonCallback(GLFWwindow* window, int button, int action, int mods)
         // com o botão esquerdo pressionado.
         glfwGetCursorPos(window, &g_LastCursorPosX, &g_LastCursorPosY);
         g_LeftMouseButtonPressed = true;
+
+
+        /*---RAYCASTING---*/
+        //referencia: http://antongerdelan.net/opengl/raycasting.html
+        //Step 1: 3d Normalised Device Coordinates
+        float mouseX = g_LastCursorPosX / (800 * 0.5f) -1.0f;
+        printf("mouseX: %f ---- %f\n", mouseX, &mouseX);
+        float mouseY = g_LastCursorPosY / (600 * 0.5f) - 1.0f;
+        float z = 1.0f;
+        glm::vec4 ray_nds = glm::vec4(mouseX, mouseY,z,1.0f);
+        printf("normalized: %f %f\n\n", ray_nds.x, ray_nds.y);
+
+        //Step 2: 4d Homogeneous Clip Coordinates
+        glm::vec4 ray_clip = glm::vec4(ray_nds.x, ray_nds.y, -1.0, 1.0);
+
+        //Step 3: 4d Eye (Camera) Coordinates
+        glm::vec4 ray_eye  = glm::inverse(projectionMatrix) * ray_clip;
+        ray_eye = glm::vec4(ray_eye.x, ray_eye.y, -1.0, 0.0);
+
+        //Step 4: 4d World Coordinates
+        glm::vec3 invVP = glm::inverse(viewMatrix) * ray_eye;
+        glm::vec3 ray_wor = glm::vec3 (invVP.x, invVP.y, invVP.z);
+        // don't forget to normalise the vector at some point
+        ray_wor = glm::normalize(ray_wor);
+
+        printf("ray_wor norm: %f %f\n\n", ray_wor.x, ray_wor.y);
+
     }
     if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_RELEASE)
     {
@@ -1112,6 +1148,7 @@ void MouseButtonCallback(GLFWwindow* window, int button, int action, int mods)
         // com o botão esquerdo pressionado.
         glfwGetCursorPos(window, &g_LastCursorPosX, &g_LastCursorPosY);
         g_MiddleMouseButtonPressed = true;
+
     }
     if (button == GLFW_MOUSE_BUTTON_MIDDLE && action == GLFW_RELEASE)
     {
@@ -1131,7 +1168,7 @@ void CursorPosCallback(GLFWwindow* window, double xpos, double ypos)
     // parâmetros que definem a posição da câmera dentro da cena virtual.
     // Assim, temos que o usuário consegue controlar a câmera.
 
-    if (g_LeftMouseButtonPressed)
+    if (g_RightMouseButtonPressed)
     {
         // Deslocamento do cursor do mouse em x e y de coordenadas de tela!
         float dx = xpos - g_LastCursorPosX;
@@ -1157,20 +1194,13 @@ void CursorPosCallback(GLFWwindow* window, double xpos, double ypos)
         g_LastCursorPosY = ypos;
     }
 
-    if (g_RightMouseButtonPressed)
+    if (g_LeftMouseButtonPressed)
     {
         // Deslocamento do cursor do mouse em x e y de coordenadas de tela!
         float dx = xpos - g_LastCursorPosX;
         float dy = ypos - g_LastCursorPosY;
 
-        // Atualizamos parâmetros da antebraço com os deslocamentos
-        g_ForearmAngleZ -= 0.01f*dx;
-        g_ForearmAngleX += 0.01f*dy;
 
-        // Atualizamos as variáveis globais para armazenar a posição atual do
-        // cursor como sendo a última posição conhecida do cursor.
-        g_LastCursorPosX = xpos;
-        g_LastCursorPosY = ypos;
     }
 
     if (g_MiddleMouseButtonPressed)
@@ -1189,6 +1219,7 @@ void CursorPosCallback(GLFWwindow* window, double xpos, double ypos)
         g_LastCursorPosY = ypos;
     }
 }
+
 
 // Função callback chamada sempre que o usuário movimenta a "rodinha" do mouse.
 void ScrollCallback(GLFWwindow* window, double xoffset, double yoffset)
