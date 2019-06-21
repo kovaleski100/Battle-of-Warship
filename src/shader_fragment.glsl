@@ -60,14 +60,24 @@ void main()
     vec4 n = normalize(normal);
 
     // Vetor que define o sentido da fonte de luz em relação ao ponto atual.
-    vec4 l = normalize(vec4(1.0,1.0,0.0,0.0));
+    vec4 l = normalize(vec4(1.0,1.0,0.5,0.0));
 
     // Vetor que define o sentido da câmera em relação ao ponto atual.
     vec4 v = normalize(camera_position - p);
 
+    // Vetor que define o sentido da reflexão especular ideal.
+    vec4 r = -l + 2*n*dot(n,l);
+
     // Coordenadas de textura U e V
     float U = 0.0;
     float V = 0.0;
+
+    // Parâmetros que definem as propriedades espectrais da superfície
+    vec3 Kd; // Refletância difusa
+    vec3 Ks; // Refletância especular
+    vec3 Ka; // Refletância ambiente
+    float q; // Expoente especular para o modelo de iluminação de Phong
+
 
     vec3 Kd0;
 
@@ -167,6 +177,25 @@ void main()
     float lambert = max(0,dot(n,l));
 
     color = Kd0*(lambert+0.01);
+
+    /* iluminação de bling phon - comentado por hora porque precisa setar todos os valores, senão fica tudo preto na cena
+
+    // Termo difuso utilizando a lei dos cossenos de Lambert
+    float lambert_diffuse_term = max(0,dot(n,l));
+
+    // Termo especular utilizando o modelo de iluminação de Phong
+    float phong_specular_term  = pow(max(0,dot(r,v)),q);
+
+    // Espectro da fonte de iluminação
+    vec3 light_spectrum = vec3(1.0,1.0,1.0);
+
+    // Espectro da luz ambiente
+    vec3 ambient_light_spectrum = vec3(0.2,0.2,0.2);
+
+    color = Kd * light_spectrum * lambert_diffuse_term
+            + Ka * ambient_light_spectrum
+            + Ks * light_spectrum * phong_specular_term;
+    */
 
     // Cor final com correção gamma, considerando monitor sRGB.
     // Veja https://en.wikipedia.org/w/index.php?title=Gamma_correction&oldid=751281772#Windows.2C_Mac.2C_sRGB_and_TV.2Fvideo_standard_gammas
