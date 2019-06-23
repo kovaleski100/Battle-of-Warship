@@ -82,12 +82,13 @@ void main()
 
     // Parâmetros que definem as propriedades espectrais da superfície
     vec3 Kd; // Refletância difusa
-    vec3 Ks; // Refletância especular
+    vec3 Ks ; // Refletância especular
     vec3 Ka; // Refletância ambiente
     float q; // Expoente especular para o modelo de iluminação de Phong
 
-
     vec3 Kd0;
+
+    int useOnlyLambert = 0;
 
     if ( object_id == SPHERE )
     {
@@ -123,7 +124,14 @@ void main()
 
         U = (theta +M_PI)/(2.0*M_PI);
         V = (phi + (M_PI_2))/M_PI;
+
+        // Parâmetros que definem as propriedades espectrais da superfície
         Kd0 = texture(TextureImage0, vec2(U,V)).rgb;
+        Ks = vec3(0,0,0); // Refletância especular
+        Ka= vec3(0,0,0); // Refletância ambienrte
+        q = 1;
+
+        useOnlyLambert = 1;
     }
     else if ( object_id == BUNNY )
     {
@@ -157,6 +165,15 @@ void main()
         V = texcoords.y;
 
         Kd0 = texture(TextureImage2, vec2(U,V)).rgb;
+        Kd = vec3(1.0, 1.0, 0.5);
+        Ks = vec3(0, 0, 0);
+        Ka = Kd/2;
+
+        // Parâmetros que definem as propriedades espectrais da superfície
+        Kd = vec3(1.0,1.0,1.0); // Refletância difusa
+        Ks = vec3(0.1,0.1,0.12); // Refletância especular
+        Ka= vec3(0,0,0); // Refletância ambiente
+        q = 50;
 
     }
     else if ( object_id == PLANEE )
@@ -167,6 +184,12 @@ void main()
 
         Kd0 = texture(TextureImage3, vec2(U,V)).rgb;
 
+
+        // Parâmetros que definem as propriedades espectrais da superfície
+        Kd = vec3(1.0,1.0,1.0); // Refletância difusa
+        Ks = vec3(0.1,0.1,0.12); // Refletância especular
+        Ka= vec3(0,0,0); // Refletância ambiente
+        q = 50;
     }
     else if(object_id == CUBO)
     {
@@ -183,6 +206,12 @@ void main()
         V = (position_model.y-miny)/(maxy-miny);
 
         Kd0 = vec3(1,0,0);
+
+        // Parâmetros que definem as propriedades espectrais da superfície
+        Kd = vec3(1.0,1.0,1.0); // Refletância difusa
+        Ks = vec3(0.25,0.25,0.25); // Refletância especular
+        Ka= vec3(0,0,0); // Refletância ambiente
+        q = 25;
     }
     else if(object_id == BARCOE)
     {
@@ -199,6 +228,11 @@ void main()
         V = (position_model.y-miny)/(maxy-miny);
 
         Kd0 = vec3(0,0,1);
+
+        // Parâmetros que definem as propriedades espectrais da superfície
+        Ks = vec3(0.25,0.25,0.5); // Refletância especular
+        Ka= vec3(0,0,0); // Refletância ambiente
+        q = 25;
     }
     else if(object_id == select)
     {
@@ -206,6 +240,9 @@ void main()
         V = texcoords.y;
 
         Kd0 = texture(TextureImage4, vec2(U,V)).rgb;
+        Ks = vec3(0.01,0.01,0.05); // Refletância especular
+        Ka= vec3(0.5,0.5,0.1); // Refletância ambiente
+        q = 1;
     }
     else if(object_id == ball)
     {
@@ -239,7 +276,7 @@ void main()
 
     color = Kd0*(lambert+0.01);
 
-    /** iluminação de bling phon - comentado por hora porque precisa setar todos os valores, senão fica tudo preto na cena
+     //iluminação de bling phon - comentado por hora porque precisa setar todos os valores, senão fica tudo preto na cena
 
     // Termo difuso utilizando a lei dos cossenos de Lambert
     float lambert_diffuse_term = max(0,dot(n,l));
@@ -256,7 +293,11 @@ void main()
     color = Kd0 * light_spectrum * lambert_diffuse_term
             + Ka * ambient_light_spectrum
             + Ks * light_spectrum * phong_specular_term;
-    **/
+
+    if (useOnlyLambert == 1)
+    {
+        color = Kd0*(lambert+0.01);
+    }
 
     // Cor final com correção gamma, considerando monitor sRGB.
     // Veja https://en.wikipedia.org/w/index.php?title=Gamma_correction&oldid=751281772#Windows.2C_Mac.2C_sRGB_and_TV.2Fvideo_standard_gammas
