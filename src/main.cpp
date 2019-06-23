@@ -53,12 +53,14 @@ struct barco
     glm::vec4 pos = glm::vec4(0.0f, 0.0f,0.0f,1.0f);
     glm::mat4 model = Matrix_Identity() * Matrix_Translate(pos.x, pos.y,pos.z);
     bool alive = true;
+    bool alido = false;
 };
 
 struct grid
 {
     glm::vec4 pos = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
     glm::mat4 model = Matrix_Identity() * Matrix_Translate(pos.x, pos.y, pos.z);
+    bool seen=false;
     barco ship;
 };
 
@@ -216,9 +218,11 @@ glm::vec4 camera_view_vector;
 
 // Número de texturas carregadas pela função LoadTextureImage()
 GLuint g_NumLoadedTextures = 0;
-
+grid Chao[10][10];
+int missil_on =0;
+int missil_me = 1;
 //
-
+int posx=4, posy=5;
 int main(int argc, char* argv[])
 {
     // Inicializamos a biblioteca GLFW, utilizada para criar uma janela do
@@ -229,7 +233,6 @@ int main(int argc, char* argv[])
         fprintf(stderr, "ERROR: glfwInit() failed.\n");
         std::exit(EXIT_FAILURE);
     }
-
     // Definimos o callback para impressão de erros da GLFW no terminal
     glfwSetErrorCallback(ErrorCallback);
 
@@ -296,6 +299,8 @@ int main(int argc, char* argv[])
     LoadTextureImage("../../data/tc-earth_daymap_surface.jpg");      // TextureImage0
     LoadTextureImage("../../data/tc-earth_nightmap_citylights.gif"); // TextureImage1
     LoadTextureImage("../../data/mar.jpg"); // TextureImage1
+    LoadTextureImage("../../data/mare.jpg"); // TextureImage1
+    LoadTextureImage("../../data/marselect.jpg"); // TextureImage1
 
     // Construímos a representação de objetos geométricos através de malhas de triângulos
     ObjModel spheremodel("../../data/sphere.obj");
@@ -310,7 +315,7 @@ int main(int argc, char* argv[])
     ComputeNormals(&planemodel);
     BuildTrianglesAndAddToVirtualScene(&planemodel);
 
-    ObjModel cubemodel("../../data/cubeira.obj");
+    ObjModel cubemodel("../../data/boat1.obj");
     ComputeNormals(&cubemodel);
     BuildTrianglesAndAddToVirtualScene(&cubemodel);
 
@@ -339,30 +344,46 @@ int main(int argc, char* argv[])
 
     glm::vec4 anterior;
 
-    grid Chao[10][10];
-
-    for(int i=0; i<10;i++)
+    for(int i=0; i<10; i++)
     {
-        for(int j =0; j<10;j++)
+        for(int j =0; j<10; j++)
         {
             Chao[i][j].pos = glm::vec4(i*2,0.0,j*2,1.0f);
             Chao[i][j].model = Matrix_Translate(Chao[i][j].pos.x, Chao[i][j].pos.y, Chao[i][j].pos.z);
         }
     }
-
-    barco barco[5];
-
-    for(int i = 0; i<5; i++)
+    int nbarco=5;
+    barco barco[2][nbarco];
+    float t=0.0;
+    double tempo = glfwGetTime();
+    for(int j=0; j<2; j++)
     {
-        int x = rand()%10;
-        int y = rand()%10;
-        printf("%d %d\n", x,y);
-
-        barco[i].model = Chao[x][y].model*Matrix_Translate(0,0.25f,0);
-        barco[i].pos = Chao[x][y].pos;
-        Chao[x][y].ship = barco[i];
+        for(int i = 0; i<nbarco; i++)
+        {
+            int y = rand()%10;
+            int x;
+            if(j==0)
+            {
+                x = rand()%5;
+                barco[j][i].model = Chao[x][y].model*Matrix_Translate(0,0.0f,0)*Matrix_Scale(0.01,0.01,0.01);
+                barco[j][i].pos = Chao[x][y].pos;
+                Chao[x][y].ship = barco[j][i];
+                barco[j][i].alido = true;
+            }
+            else
+            {
+                x = rand()%5+5;
+                barco[j][i].model = Chao[x][y].model*Matrix_Translate(0,0.0f,0)*Matrix_Scale(0.01,0.01,0.01);
+                barco[j][i].pos = Chao[x][y].pos;
+                Chao[x][y].ship = barco[j][i];
+                barco[j][i].alido = false;
+            }
+            printf("%d %d\n", x,y);
+        }
     }
-
+    glm::vec4 lancer_a = glm::vec4(-2, 0.0, (0+2*9)/2,1.0);
+    glm::vec4 lancer_e = glm::vec4(2*10, 0.0,(0+2*9)/2,1.0);
+    glm::vec4 pontosf;
     // Ficamos em loop, renderizando, até que o usuário feche a janela
     while (!glfwWindowShouldClose(window))
     {
@@ -459,6 +480,13 @@ int main(int argc, char* argv[])
 #define PLANE  2
 #define rsphare 16
 #define CUBO 4
+#define BARCO 5
+#define PLANEE 6
+#define seenselect 7
+#define SELECT 8
+#define ball 9
+
+
         glm::mat4 model = Matrix_Identity();
 
         // Desenhamos o modelo da esfera
@@ -476,23 +504,98 @@ int main(int argc, char* argv[])
         //     DrawVirtualObject("bunny");
 
         // Desenhamos o plano do chão
-
-
         for(int i = 0; i<10; i++)
         {
             for(int j = 0; j<10; j++)
             {
-
-                glUniformMatrix4fv(model_uniform, 1, GL_FALSE, glm::value_ptr(Chao[i][j].model));
-                glUniform1i(object_id_uniform, PLANE);
-                DrawVirtualObject("plane");
+                if(i==posx && j == posy)
+                {
+                    if(Chao[posx][posy].seen)
+                    {
+                        glUniformMatrix4fv(model_uniform, 1, GL_FALSE, glm::value_ptr(Chao[posx][posy].model));
+                        glUniform1i(object_id_uniform, seenselect);
+                        DrawVirtualObject("plane");
+                    }
+                    else
+                    {
+                        glUniformMatrix4fv(model_uniform, 1, GL_FALSE, glm::value_ptr(Chao[posx][posy].model));
+                        glUniform1i(object_id_uniform, SELECT);
+                        DrawVirtualObject("plane");
+                    }
+                }
+                else if(i>4 && !Chao[i][j].seen)
+                {
+                    glUniformMatrix4fv(model_uniform, 1, GL_FALSE, glm::value_ptr(Chao[i][j].model));
+                    glUniform1i(object_id_uniform, PLANEE);
+                    DrawVirtualObject("plane");
+                }
+                else if(i<=4 && !Chao[i][j].seen)
+                {
+                    glUniformMatrix4fv(model_uniform, 1, GL_FALSE, glm::value_ptr(Chao[i][j].model));
+                    glUniform1i(object_id_uniform, PLANE);
+                    DrawVirtualObject("plane");
+                }
+                else if(Chao[i][j].seen)
+                {
+                    glUniformMatrix4fv(model_uniform, 1, GL_FALSE, glm::value_ptr(Chao[i][j].model));
+                    glUniform1i(object_id_uniform, PLANE);
+                    DrawVirtualObject("plane");
+                }
             }
         }
-        for(int i = 0; i<5; i++)
+        model = Matrix_Translate(lancer_a.x,lancer_a.y,lancer_a.z);
+        glUniformMatrix4fv(model_uniform, 1, GL_FALSE, glm::value_ptr(model));
+        glUniform1i(object_id_uniform, PLANE);
+        DrawVirtualObject("plane");
+
+        model = Matrix_Translate(lancer_e.x,lancer_e.y,lancer_e.z);
+        glUniformMatrix4fv(model_uniform, 1, GL_FALSE, glm::value_ptr(model));
+        glUniform1i(object_id_uniform, PLANEE);
+        DrawVirtualObject("plane");
+        if(missil_on)
         {
-            glUniformMatrix4fv(model_uniform, 1, GL_FALSE, glm::value_ptr(barco[i].model));
-            glUniform1i(object_id_uniform, CUBO);
-            DrawVirtualObject("ship");
+            if(t<1 && glfwGetTime()-tempo>=0.01)
+            {
+                printf("pi");
+                glm::vec4 pontos1[3];
+                pontos1[0] = lancer_e;
+                pontos1[1].x = (lancer_e.x + Chao[posx][posy].pos.x)/2;
+                pontos1[1].y = 10.0;
+                pontos1[1].z = (lancer_e.z + Chao[posx][posy].pos.z)/2;
+                pontos1[2] = Chao[posx][posy].pos;
+                glm::vec4 pontos2[2];
+
+                tempo = glfwGetTime();
+                pontos2[0] = pontos1[0] + t*(pontos1[1]-pontos1[0]);
+                pontos2[1] = pontos1[1] + t*(pontos1[2]-pontos1[1]);
+
+                pontosf = pontos2[0] + t*(pontos2[1]-pontos2[0]);
+                t=t+0.01;
+                tempo = glfwGetTime();
+                model =Matrix_Translate(pontosf.x,pontosf.y,pontosf.z) * Matrix_Scale(1,1,1);
+                glUniformMatrix4fv(model_uniform, 1, GL_FALSE, glm::value_ptr(model));
+                glUniform1i(object_id_uniform, ball);
+                DrawVirtualObject("sphere");
+            }
+        }
+
+        for(int i = 0; i<2; i++)
+        {
+            for(int j =0; j< nbarco; j++)
+            {
+                if(barco[i][j].alido==true)
+                {
+                    glUniformMatrix4fv(model_uniform, 1, GL_FALSE, glm::value_ptr(barco[i][j].model));
+                    glUniform1i(object_id_uniform, CUBO);
+                    DrawVirtualObject("ship");
+                }
+                ///else if(grid.seen == true)
+                {
+                    glUniformMatrix4fv(model_uniform, 1, GL_FALSE, glm::value_ptr(barco[i][j].model));
+                    glUniform1i(object_id_uniform, BARCO);
+                    DrawVirtualObject("ship");
+                }
+            }
         }
 
         glDisable(GL_CULL_FACE);
@@ -669,6 +772,8 @@ void LoadShadersFromFiles()
     glUniform1i(glGetUniformLocation(program_id, "TextureImage0"), 0);
     glUniform1i(glGetUniformLocation(program_id, "TextureImage1"), 1);
     glUniform1i(glGetUniformLocation(program_id, "TextureImage2"), 2);
+    glUniform1i(glGetUniformLocation(program_id, "TextureImage3"), 3);
+    glUniform1i(glGetUniformLocation(program_id, "TextureImage4"), 4);
     glUseProgram(0);
 }
 
@@ -1349,6 +1454,60 @@ void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mod)
             camera_position_c = camera_position_c + 0.1f*camera_lookat_l;
         }
     }
+    if(camera_position_c.y<0.1)
+    {
+        camera_position_c.y += 0.1;
+    }
+    if(key == GLFW_KEY_DOWN && action == GLFW_PRESS)
+    {
+        if(posx>3)
+        {
+            posx = 4;
+        }
+        else
+        {
+            posx++;
+        }
+    }
+    if(key == GLFW_KEY_UP && action == GLFW_PRESS)
+    {
+        if(posx<1)
+        {
+            posx = 0;
+        }
+        else
+        {
+            posx--;
+        }
+    }
+    if(key == GLFW_KEY_LEFT && action == GLFW_PRESS)
+    {
+        if(posy>8)
+        {
+            posy = 9;
+        }
+        else
+        {
+            posy++;
+        }
+    }
+    if(key == GLFW_KEY_RIGHT && action == GLFW_PRESS)
+    {
+        if(posy<1)
+        {
+            posy = 5;
+        }
+        else
+        {
+            posy--;
+        }
+    }
+    if(key == GLFW_KEY_ENTER && action == GLFW_PRESS)
+    {
+        missil_on = 1;
+    }
+    printf("\n %d %d\n", posx, posy);
+
 }
 
 // Definimos o callback para impressão de erros da GLFW no terminal
@@ -1522,7 +1681,6 @@ void PrintObjModelInfo(ObjModel* model)
                static_cast<const double>(attrib.texcoords[2 * v + 0]),
                static_cast<const double>(attrib.texcoords[2 * v + 1]));
     }
-
     // For each shape
     for (size_t i = 0; i < shapes.size(); i++)
     {

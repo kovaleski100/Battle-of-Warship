@@ -22,7 +22,13 @@ uniform mat4 projection;
 #define SPHERE 0
 #define BUNNY  1
 #define PLANE  2
+#define PLANEE  6
 #define CUBO 4
+#define BARCOE 5
+#define seenselect 7
+#define select 8
+#define ball 9
+
 uniform int object_id;
 
 // Parâmetros da axis-aligned bounding box (AABB) do modelo
@@ -33,6 +39,8 @@ uniform vec4 bbox_max;
 uniform sampler2D TextureImage0;
 uniform sampler2D TextureImage1;
 uniform sampler2D TextureImage2;
+uniform sampler2D TextureImage3;
+uniform sampler2D TextureImage4;
 
 // O valor de saída ("out") de um Fragment Shader é a cor final do fragmento.
 out vec3 color;
@@ -151,6 +159,15 @@ void main()
         Kd0 = texture(TextureImage2, vec2(U,V)).rgb;
 
     }
+    else if ( object_id == PLANEE )
+    {
+        // Coordenadas de textura do plano, obtidas do arquivo OBJ.
+        U = texcoords.x;
+        V = texcoords.y;
+
+        Kd0 = texture(TextureImage3, vec2(U,V)).rgb;
+
+    }
     else if(object_id == CUBO)
     {
         float minx = bbox_min.x;
@@ -167,7 +184,51 @@ void main()
 
         Kd0 = vec3(1,0,0);
     }
+    else if(object_id == BARCOE)
+    {
+        float minx = bbox_min.x;
+        float maxx = bbox_max.x;
 
+        float miny = bbox_min.y;
+        float maxy = bbox_max.y;
+
+        float minz = bbox_min.z;
+        float maxz = bbox_max.z;
+
+        U = (position_model.x-minx)/(maxx-minx);
+        V = (position_model.y-miny)/(maxy-miny);
+
+        Kd0 = vec3(0,0,1);
+    }
+    else if(object_id == select)
+    {
+        U = texcoords.x;
+        V = texcoords.y;
+
+        Kd0 = texture(TextureImage4, vec2(U,V)).rgb;
+    }
+    else if(object_id == ball)
+    {
+
+        vec4 bbox_center = (bbox_min + bbox_max) / 2.0;
+        vec4 max_vec = bbox_max;
+        max_vec.w = 0.0;
+        float ro= length(max_vec);
+
+        vec4 p_vec = normalize(position_model - bbox_center) * ro;
+        vec4 p_linha = bbox_center + p_vec;
+
+        float px =  p_linha.x;
+        float py =  p_linha.y;
+        float pz =  p_linha.z;
+
+        float theta = atan(px,pz);
+        float phi = asin(py/ro);
+
+        U = (theta +M_PI)/(2.0*M_PI);
+        V = (phi + (M_PI_2))/M_PI;
+        Kd0 = vec3(0,0,0);
+    }
     // Obtemos a refletância difusa a partir da leitura da imagem TextureImage0
 
 
@@ -178,7 +239,7 @@ void main()
 
     color = Kd0*(lambert+0.01);
 
-    /* iluminação de bling phon - comentado por hora porque precisa setar todos os valores, senão fica tudo preto na cena
+    /** iluminação de bling phon - comentado por hora porque precisa setar todos os valores, senão fica tudo preto na cena
 
     // Termo difuso utilizando a lei dos cossenos de Lambert
     float lambert_diffuse_term = max(0,dot(n,l));
@@ -192,10 +253,10 @@ void main()
     // Espectro da luz ambiente
     vec3 ambient_light_spectrum = vec3(0.2,0.2,0.2);
 
-    color = Kd * light_spectrum * lambert_diffuse_term
+    color = Kd0 * light_spectrum * lambert_diffuse_term
             + Ka * ambient_light_spectrum
             + Ks * light_spectrum * phong_specular_term;
-    */
+    **/
 
     // Cor final com correção gamma, considerando monitor sRGB.
     // Veja https://en.wikipedia.org/w/index.php?title=Gamma_correction&oldid=751281772#Windows.2C_Mac.2C_sRGB_and_TV.2Fvideo_standard_gammas
