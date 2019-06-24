@@ -2,23 +2,29 @@
 
 // Atributos de fragmentos recebidos como entrada ("in") pelo Fragment Shader.
 // Neste exemplo, este atributo foi gerado pelo rasterizador como a
-// interpola√ß√£o da posi√ß√£o global e a normal de cada v√©rtice, definidas em
+// interpolaÁ„o da posiÁ„o global e a normal de cada vÈrtice, definidas em
 // "shader_vertex.glsl" e "main.cpp".
 in vec4 position_world;
 in vec4 normal;
 
-// Posi√ß√£o do v√©rtice atual no sistema de coordenadas local do modelo.
+// PosiÁ„o do vÈrtice atual no sistema de coordenadas local do modelo.
 in vec4 position_model;
 
 // Coordenadas de textura obtidas do arquivo OBJ (se existirem!)
 in vec2 texcoords;
 
-// Matrizes computadas no c√≥digo C++ e enviadas para a GPU
+in vec4 lv;
+in vec4 nv;
+in vec4 rv;
+in vec4 vv;
+in float lambertv;
+
+// Matrizes computadas no cÛdigo C++ e enviadas para a GPU
 uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
 
-// Identificador que define qual objeto est√° sendo desenhado no momento
+// Identificador que define qual objeto est· sendo desenhado no momento
 #define SPHERE 0
 #define BUNNY  1
 #define PLANE  2
@@ -28,22 +34,29 @@ uniform mat4 projection;
 #define seenselect 7
 #define select 8
 #define ball 9
+#define SEEN 10
+
 
 uniform int object_id;
 
-// Par√¢metros da axis-aligned bounding box (AABB) do modelo
+// Par‚metros da axis-aligned bounding box (AABB) do modelo
 uniform vec4 bbox_min;
 uniform vec4 bbox_max;
 
-// Vari√°veis para acesso das imagens de textura
+// Vari·veis para acesso das imagens de textura
 uniform sampler2D TextureImage0;
 uniform sampler2D TextureImage1;
 uniform sampler2D TextureImage2;
 uniform sampler2D TextureImage3;
 uniform sampler2D TextureImage4;
+uniform sampler2D TextureImage5;
+uniform sampler2D TextureImage6;
+uniform sampler2D TextureImage7;
 
-// O valor de sa√≠da ("out") de um Fragment Shader √© a cor final do fragmento.
+// O valor de saÌda ("out") de um Fragment Shader È a cor final do fragmento.
 out vec3 color;
+in vec3 colorv;
+in float lambert;
 
 // Constantes
 #define M_PI   3.14159265358979323846
@@ -51,59 +64,56 @@ out vec3 color;
 
 void main()
 {
-    // Obtemos a posi√ß√£o da c√¢mera utilizando a inversa da matriz que define o
-    // sistema de coordenadas da c√¢mera.
-    vec4 origin = vec4(0.0, 0.0, 0.0, 1.0);
-    vec4 camera_position = inverse(view) * origin;
+    // Obtemos a posiÁ„o da c‚mera utilizando a inversa da matriz que define o
+    // sistema de coordenadas da c‚mera.
 
-    // O fragmento atual √© coberto por um ponto que percente √† superf√≠cie de um
-    // dos objetos virtuais da cena. Este ponto, p, possui uma posi√ß√£o no
-    // sistema de coordenadas global (World coordinates). Esta posi√ß√£o √© obtida
-    // atrav√©s da interpola√ß√£o, feita pelo rasterizador, da posi√ß√£o de cada
-    // v√©rtice.
-    vec4 p = position_world;
+
+    // O fragmento atual È coberto por um ponto que percente ‡ superfÌcie de um
+    // dos objetos virtuais da cena. Este ponto, p, possui uma posiÁ„o no
+    // sistema de coordenadas global (World coordinates). Esta posiÁ„o È obtida
+    // atravÈs da interpolaÁ„o, feita pelo rasterizador, da posiÁ„o de cada
+    // vÈrtice.
+
 
     // Normal do fragmento atual, interpolada pelo rasterizador a partir das
-    // normais de cada v√©rtice.
-    vec4 n = normalize(normal);
+    // normais de cada vÈrtice.
 
-    // Vetor que define o sentido da fonte de luz em rela√ß√£o ao ponto atual.
-    vec4 l = normalize(vec4(1.0,1.0,0.5,0.0));
 
-    // Vetor que define o sentido da c√¢mera em rela√ß√£o ao ponto atual.
-    vec4 v = normalize(camera_position - p);
+    // Vetor que define o sentido da c‚mera em relaÁ„o ao ponto atual.
 
-    // Vetor que define o sentido da reflex√£o especular ideal.
-    vec4 r = -l + 2*n*dot(n,l);
+
+    // Vetor que define o sentido da reflex„o especular ideal.
+
 
     // Coordenadas de textura U e V
     float U = 0.0;
     float V = 0.0;
 
-    // Par√¢metros que definem as propriedades espectrais da superf√≠cie
-    vec3 Kd; // Reflet√¢ncia difusa
-    vec3 Ks ; // Reflet√¢ncia especular
-    vec3 Ka; // Reflet√¢ncia ambiente
-    float q; // Expoente especular para o modelo de ilumina√ß√£o de Phong
+    // Par‚metros que definem as propriedades espectrais da superfÌcie
+    vec3 Kd; // Reflet‚ncia difusa
+    vec3 Ks ; // Reflet‚ncia especular
+    vec3 Ka; // Reflet‚ncia ambiente
+    float q; // Expoente especular para o modelo de iluminaÁ„o de Phong
 
     vec3 Kd0;
 
     int useOnlyLambert = 0;
 
+    color = colorv;
     if ( object_id == SPHERE )
     {
         // PREENCHA AQUI as coordenadas de textura da esfera, computadas com
-        // proje√ß√£o esf√©rica EM COORDENADAS DO MODELO. Utilize como refer√™ncia
+        // projeÁ„o esfÈrica EM COORDENADAS DO MODELO. Utilize como referÍncia
         // o slide 144 do documento "Aula_20_e_21_Mapeamento_de_Texturas.pdf".
-        // A esfera que define a proje√ß√£o deve estar centrada na posi√ß√£o
+        // A esfera que define a projeÁ„o deve estar centrada na posiÁ„o
         // "bbox_center" definida abaixo.
 
-        // Voc√™ deve utilizar:
-        //   fun√ß√£o 'length( )' : comprimento Euclidiano de um vetor
-        //   fun√ß√£o 'atan( , )' : arcotangente. Veja https://en.wikipedia.org/wiki/Atan2.
-        //   fun√ß√£o 'asin( )'   : seno inverso.
+        // VocÍ deve utilizar:
+        //   funÁ„o 'length( )' : comprimento Euclidiano de um vetor
+        //   funÁ„o 'atan( , )' : arcotangente. Veja https://en.wikipedia.org/wiki/Atan2.
+        //   funÁ„o 'asin( )'   : seno inverso.
         //   constante M_PI
-        //   vari√°vel position_model
+        //   vari·vel position_model
 
 
         vec4 bbox_center = (bbox_min + bbox_max) / 2.0;
@@ -125,38 +135,9 @@ void main()
         U = (theta +M_PI)/(2.0*M_PI);
         V = (phi + (M_PI_2))/M_PI;
 
-        // Par√¢metros que definem as propriedades espectrais da superf√≠cie
+        // Par‚metros que definem as propriedades espectrais da superfÌcie
         Kd0 = texture(TextureImage0, vec2(U,V)).rgb;
-        Ks = vec3(0,0,0); // Reflet√¢ncia especular
-        Ka= vec3(0,0,0); // Reflet√¢ncia ambienrte
-        q = 1;
-
-        useOnlyLambert = 1;
-    }
-    else if ( object_id == BUNNY )
-    {
-        // PREENCHA AQUI as coordenadas de textura do coelho, computadas com
-        // proje√ß√£o planar XY em COORDENADAS DO MODELO. Utilize como refer√™ncia
-        // o slide 111 do documento "Aula_20_e_21_Mapeamento_de_Texturas.pdf",
-        // e tamb√©m use as vari√°veis min*/max* definidas abaixo para normalizar
-        // as coordenadas de textura U e V dentro do intervalo [0,1]. Para
-        // tanto, veja por exemplo o mapeamento da vari√°vel 'p_v' utilizando
-        // 'h' no slide 154 do documento "Aula_20_e_21_Mapeamento_de_Texturas.pdf".
-        // Veja tamb√©m a Quest√£o 4 do Question√°rio 4 no Moodle.
-
-        float minx = bbox_min.x;
-        float maxx = bbox_max.x;
-
-        float miny = bbox_min.y;
-        float maxy = bbox_max.y;
-
-        float minz = bbox_min.z;
-        float maxz = bbox_max.z;
-
-        U = (position_model.x-minx)/(maxx-minx);
-        V = (position_model.y-miny)/(maxy-miny);
-
-        Kd0 = texture(TextureImage0, vec2(U,V)).rgb;
+        color = Kd0*(lambert+0.01);
     }
     else if ( object_id == PLANE )
     {
@@ -165,16 +146,29 @@ void main()
         V = texcoords.y;
 
         Kd0 = texture(TextureImage2, vec2(U,V)).rgb;
-        Kd = vec3(1.0, 1.0, 0.5);
-        Ks = vec3(0, 0, 0);
-        Ka = Kd/2;
+        color = Kd0*(lambert+0.01);
 
-        // Par√¢metros que definem as propriedades espectrais da superf√≠cie
-        Kd = vec3(1.0,1.0,1.0); // Reflet√¢ncia difusa
-        Ks = vec3(0.1,0.1,0.12); // Reflet√¢ncia especular
-        Ka= vec3(0,0,0); // Reflet√¢ncia ambiente
-        q = 50;
+    }
+    else if ( object_id == seenselect )
+    {
+        // Coordenadas de textura do plano, obtidas do arquivo OBJ.
+        U = texcoords.x;
+        V = texcoords.y;
 
+        Kd0 = texture(TextureImage7, vec2(U,V)).rgb;
+        color = Kd0*(lambert+0.01);
+
+    }
+    else if ( object_id == SEEN )
+    {
+        // Coordenadas de textura do plano, obtidas do arquivo OBJ.
+        U = texcoords.x;
+        V = texcoords.y;
+
+        Kd0 = texture(TextureImage6, vec2(U,V)).rgb;
+
+        color = Kd0*(lambert+0.01);
+        // Par‚metros que definem as propriedades espectrais da superfÌcie
     }
     else if ( object_id == PLANEE )
     {
@@ -184,55 +178,8 @@ void main()
 
         Kd0 = texture(TextureImage3, vec2(U,V)).rgb;
 
-
-        // Par√¢metros que definem as propriedades espectrais da superf√≠cie
-        Kd = vec3(1.0,1.0,1.0); // Reflet√¢ncia difusa
-        Ks = vec3(0.1,0.1,0.12); // Reflet√¢ncia especular
-        Ka= vec3(0,0,0); // Reflet√¢ncia ambiente
-        q = 50;
-    }
-    else if(object_id == CUBO)
-    {
-        float minx = bbox_min.x;
-        float maxx = bbox_max.x;
-
-        float miny = bbox_min.y;
-        float maxy = bbox_max.y;
-
-        float minz = bbox_min.z;
-        float maxz = bbox_max.z;
-
-        U = (position_model.x-minx)/(maxx-minx);
-        V = (position_model.y-miny)/(maxy-miny);
-
-        Kd0 = vec3(1,0,0);
-
-        // Par√¢metros que definem as propriedades espectrais da superf√≠cie
-        Kd = vec3(1.0,1.0,1.0); // Reflet√¢ncia difusa
-        Ks = vec3(0.25,0.25,0.25); // Reflet√¢ncia especular
-        Ka= vec3(0,0,0); // Reflet√¢ncia ambiente
-        q = 25;
-    }
-    else if(object_id == BARCOE)
-    {
-        float minx = bbox_min.x;
-        float maxx = bbox_max.x;
-
-        float miny = bbox_min.y;
-        float maxy = bbox_max.y;
-
-        float minz = bbox_min.z;
-        float maxz = bbox_max.z;
-
-        U = (position_model.x-minx)/(maxx-minx);
-        V = (position_model.y-miny)/(maxy-miny);
-
-        Kd0 = vec3(0,0,1);
-
-        // Par√¢metros que definem as propriedades espectrais da superf√≠cie
-        Ks = vec3(0.25,0.25,0.5); // Reflet√¢ncia especular
-        Ka= vec3(0,0,0); // Reflet√¢ncia ambiente
-        q = 25;
+        color = Kd0*(lambert+0.01);
+        // Par‚metros que definem as propriedades espectrais da superfÌcie
     }
     else if(object_id == select)
     {
@@ -240,66 +187,72 @@ void main()
         V = texcoords.y;
 
         Kd0 = texture(TextureImage4, vec2(U,V)).rgb;
-        Ks = vec3(0.01,0.01,0.05); // Reflet√¢ncia especular
-        Ka= vec3(0.5,0.5,0.1); // Reflet√¢ncia ambiente
-        q = 1;
-    }
-    else if(object_id == ball)
-    {
-
-        vec4 bbox_center = (bbox_min + bbox_max) / 2.0;
-        vec4 max_vec = bbox_max;
-        max_vec.w = 0.0;
-        float ro= length(max_vec);
-
-        vec4 p_vec = normalize(position_model - bbox_center) * ro;
-        vec4 p_linha = bbox_center + p_vec;
-
-        float px =  p_linha.x;
-        float py =  p_linha.y;
-        float pz =  p_linha.z;
-
-        float theta = atan(px,pz);
-        float phi = asin(py/ro);
-
-        U = (theta +M_PI)/(2.0*M_PI);
-        V = (phi + (M_PI_2))/M_PI;
-        Kd0 = vec3(0,0,0);
-    }
-    // Obtemos a reflet√¢ncia difusa a partir da leitura da imagem TextureImage0
-
-
-
-
-    // Equa√ß√£o de Ilumina√ß√£o
-    float lambert = max(0,dot(n,l));
-
-    color = Kd0*(lambert+0.01);
-
-     //ilumina√ß√£o de bling phon - comentado por hora porque precisa setar todos os valores, sen√£o fica tudo preto na cena
-
-    // Termo difuso utilizando a lei dos cossenos de Lambert
-    float lambert_diffuse_term = max(0,dot(n,l));
-
-    // Termo especular utilizando o modelo de ilumina√ß√£o de Phong
-    float phong_specular_term  = pow(max(0,dot(r,v)),q);
-
-    // Espectro da fonte de ilumina√ß√£o
-    vec3 light_spectrum = vec3(1.0,1.0,1.0);
-
-    // Espectro da luz ambiente
-    vec3 ambient_light_spectrum = vec3(0.2,0.2,0.2);
-
-    color = Kd0 * light_spectrum * lambert_diffuse_term
-            + Ka * ambient_light_spectrum
-            + Ks * light_spectrum * phong_specular_term;
-
-    if (useOnlyLambert == 1)
-    {
         color = Kd0*(lambert+0.01);
     }
+    else if(object_id == CUBO)
+    {
 
-    // Cor final com corre√ß√£o gamma, considerando monitor sRGB.
+        Kd0 = vec3(1,0,0);
+
+        // Par‚metros que definem as propriedades espectrais da superfÌcie
+        Ks = vec3(0.25,0.25,0.25); // Reflet‚ncia especular
+        Ka= vec3(0,0,0); // Reflet‚ncia ambiente
+        q = 25;
+    }
+    else if(object_id == BARCOE)
+    {
+
+        Kd0 = vec3(0,0,1);
+
+        // Par‚metros que definem as propriedades espectrais da superfÌcie
+        Ks = vec3(0.25,0.25,0.5); // Reflet‚ncia especular
+        Ka= vec3(0,0,0); // Reflet‚ncia ambiente
+        q = 25;
+    }
+    if(object_id == CUBO || object_id == BARCOE)
+    {
+        vec4 n = normalize(normal);
+
+        vec4 l = normalize(vec4(1.0,1.0,0.5,0.0));
+        vec4 r = -l + 2*n*dot(n,l);
+        vec4 origin = vec4(0.0, 0.0, 0.0, 1.0);
+        vec4 camera_position = inverse(view) * origin;
+        vec4 p = position_world;
+        vec4 v = normalize(camera_position - p);
+        float lambert = max(0,dot(nv,lv));
+
+
+
+        //iluminaÁ„o de bling phon - comentado por hora porque precisa setar todos os valores, sen„o fica tudo preto na cena
+
+        // Termo difuso utilizando a lei dos cossenos de Lambert
+        float lambert_diffuse_term = max(0,dot(n,l));
+
+        // Termo especular utilizando o modelo de iluminaÁ„o de Phong
+        float phong_specular_term  = pow(max(0,dot(r,v)),q);
+
+        // Espectro da fonte de iluminaÁ„o
+        vec3 light_spectrum = vec3(1.0,1.0,1.0);
+
+        // Espectro da luz ambiente
+        vec3 ambient_light_spectrum = vec3(0.2,0.2,0.2);
+
+        color = Kd0 * light_spectrum * lambert_diffuse_term
+                 + Ka * ambient_light_spectrum
+                 + Ks * light_spectrum * phong_specular_term;
+    }
+    // Obtemos a reflet‚ncia difusa a partir da leitura da imagem TextureImage0
+
+
+    // EquaÁ„o de IluminaÁ„o
+
+
+    ///if (useOnlyLambert == 1)
+    //{
+      //  color = Kd0*(lambert+0.01);
+    //}
+
+    // Cor final com correÁ„o gamma, considerando monitor sRGB.
     // Veja https://en.wikipedia.org/w/index.php?title=Gamma_correction&oldid=751281772#Windows.2C_Mac.2C_sRGB_and_TV.2Fvideo_standard_gammas
     color = pow(color, vec3(1.0,1.0,1.0)/2.2);
 }
