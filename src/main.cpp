@@ -48,7 +48,7 @@
 #include "utils.h"
 #include "matrices.h"
 
-struct barco
+struct barcoE
 {
     glm::vec4 pos = glm::vec4(0.0f, 0.0f,0.0f,1.0f);
     glm::mat4 model = Matrix_Identity() * Matrix_Translate(pos.x, pos.y,pos.z);
@@ -61,7 +61,7 @@ struct grid
     glm::vec4 pos = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
     glm::mat4 model = Matrix_Identity() * Matrix_Translate(pos.x, pos.y, pos.z);
     bool seen=false;
-    barco ship;
+    barcoE ship;
 };
 
 // Estrutura que representa um modelo geométrico carregado a partir de um
@@ -221,17 +221,19 @@ glm::vec4 camera_view_vector;
 GLuint g_NumLoadedTextures = 0;
 grid Chao[10][10];
 int missil_on =0;
-int missil_me = 1;
+int missil_me = 0;
+int gamestart = 0;
 grid chaoAtual;
 int posxatual, posyatual;
 glm::vec4 camera_position_c_save = camera_position_c;
 glm::mat4 modelball = Matrix_Identity();
 //
 int posx=4, posy=5;
-bool Bbox_collision(glm::vec4 A_min, glm::vec4 A_max, glm::vec4 B_min, glm::vec4 B_max){
+bool Bbox_collision(glm::vec4 A_min, glm::vec4 A_max, glm::vec4 B_min, glm::vec4 B_max)
+{
     return (A_min.x <= B_max.x && A_max.x >= B_min.x) &&
-            (A_min.y <= B_max.y && A_max.y >= B_min.y) &&
-            (A_min.z <= B_max.z && A_max.z >= B_min.z);
+           (A_min.y <= B_max.y && A_max.y >= B_min.y) &&
+           (A_min.z <= B_max.z && A_max.z >= B_min.z);
 }
 
 int main(int argc, char* argv[])
@@ -366,8 +368,9 @@ int main(int argc, char* argv[])
             Chao[i][j].model = Matrix_Translate(Chao[i][j].pos.x, Chao[i][j].pos.y, Chao[i][j].pos.z);
         }
     }
-    int nbarco=5;
-    barco barco[2][nbarco];
+    int nbarco=40;
+    barcoE barco[2][nbarco];
+    barcoE barcop[2][nbarco];
 
     double tempo = glfwGetTime();
     for(int j=0; j<2; j++)
@@ -379,7 +382,8 @@ int main(int argc, char* argv[])
             if(j==0)
             {
                 x = rand()%5;
-                barco[j][i].model = Chao[x][y].model*Matrix_Scale(0.01,0.01,0.01);
+                barcop[j][i].model = Chao[x][y].model*Matrix_Scale(0.01,0.01,0.01);
+                barco[j][i].model = barcop[j][i].model*Matrix_Rotate_Y(-3.14/2);
                 barco[j][i].pos = Chao[x][y].pos;
                 Chao[x][y].ship = barco[j][i];
                 barco[j][i].alido = true;
@@ -387,7 +391,8 @@ int main(int argc, char* argv[])
             else
             {
                 x = rand()%5+5;
-                barco[j][i].model = Chao[x][y].model*Matrix_Scale(0.01,0.01,0.01)*Matrix_Rotate_Y(3.14/2)*Matrix_Rotate_X(-3.14/2);
+                barcop[j][i].model = Chao[x][y].model*Matrix_Scale(0.01,0.01,0.01);
+                barco[j][i].model = barcop[j][i].model*Matrix_Rotate_X(-3.14/2)*Matrix_Rotate_Z(3.14/2);
                 barco[j][i].pos = Chao[x][y].pos;
                 Chao[x][y].ship = barco[j][i];
                 barco[j][i].alido = false;
@@ -424,7 +429,8 @@ int main(int argc, char* argv[])
         // e ScrollCallback().
         glm::mat4 view;
 
-        if(missil_on)
+        ///if(missil_on && missil_me)
+        if(false)
         {
             camera_lookat_l = pontosf;
             float r = g_CameraDistance;
@@ -522,7 +528,7 @@ int main(int argc, char* argv[])
         //   glUniform1i(object_id_uniform, BUNNY);
         //     DrawVirtualObject("bunny");
         // Desenhamos o plano do chão
-
+        int desenhado = 1;
         for(int i = 0; i<10; i++)
         {
             for(int j = 0; j<10; j++)
@@ -571,19 +577,56 @@ int main(int argc, char* argv[])
         glUniformMatrix4fv(model_uniform, 1, GL_FALSE, glm::value_ptr(model));
         glUniform1i(object_id_uniform, PLANEE);
         DrawVirtualObject("plane");
-        if(missil_on)
+        int repeted = 0;
+        if(Chao[posxatual][posyatual].seen && t==0)
         {
-            if(t<1 && glfwGetTime()-tempo>=0.001)
+            missil_on =0;
+        }
+        else
+        {
+            missil_on = 1;
+        }
+        printf("%d", gamestart);
+        if(missil_on && gamestart)
+        {
+            glm::vec4 pontos1[3];
+            int x,y,posxatualm,posyatualm;
+
+            if(missil_me)
             {
-                glm::vec4 pontos1[3];
+
+                chaoAtual = Chao[posxatual][posyatual];
+                posxatualm = posxatual;
+                posyatualm = posyatual;
                 pontos1[0] = lancer_e;
                 pontos1[1].x = (lancer_e.x + chaoAtual.pos.x)/2;
                 pontos1[1].y = 10.0;
                 pontos1[1].z = (lancer_e.z + chaoAtual.pos.z)/2;
                 pontos1[2] = chaoAtual.pos;
+            }
+            else if(t==0)
+            {
+                y = rand()%10;
+                x = rand()%5+5;
+                while(Chao[x][y].seen)
+                {
+                    y = rand()%10;
+                    x = rand()%5+5;
+                }
+                chaoAtual = Chao[x][y];
+                posxatualm = x;
+                posyatualm = y;
+                pontos1[0] = lancer_a;
+                pontos1[1].x = (lancer_a.x + chaoAtual.pos.x)/2;
+                pontos1[1].y = 10.0;
+                pontos1[1].z = (lancer_a.z + chaoAtual.pos.z)/2;
+                pontos1[2] = chaoAtual.pos;
+            }
+            if(t<=1 && glfwGetTime()-tempo>=0.01 && desenhado)
+            {
+                desenhado = 0;
                 glm::vec4 pontos2[2];
 
-                tempo = glfwGetTime();
                 pontos2[0] = pontos1[0] + t*(pontos1[1]-pontos1[0]);
                 pontos2[1] = pontos1[1] + t*(pontos1[2]-pontos1[1]);
 
@@ -595,7 +638,7 @@ int main(int argc, char* argv[])
                 glUniformMatrix4fv(model_uniform, 1, GL_FALSE, glm::value_ptr(modelball));
                 glUniform1i(object_id_uniform, ball);
                 DrawVirtualObject("sphere");
-
+                desenhado = 1;
 
                 glm::vec4 b_aux_bbox_mix = glm::vec4(g_VirtualScene["sphere"].bbox_min.x,g_VirtualScene["sphere"].bbox_min.y, g_VirtualScene["sphere"].bbox_min.z, 1);
                 glm::vec4 b_aux_bbox_max = glm::vec4(g_VirtualScene["sphere"].bbox_max.x,g_VirtualScene["sphere"].bbox_max.y, g_VirtualScene["sphere"].bbox_max.z, 1);
@@ -619,15 +662,19 @@ int main(int argc, char* argv[])
                     {
                         m_aux_bbox_max = glm::vec4(g_VirtualScene["ship"].bbox_max.x,g_VirtualScene["ship"].bbox_max.y, g_VirtualScene["ship"].bbox_max.z, 1);
                         m_aux_bbox_mix = glm::vec4(g_VirtualScene["ship"].bbox_min.x,g_VirtualScene["ship"].bbox_min.y, g_VirtualScene["ship"].bbox_min.z, 1);
-                        bbbox_max = barco[j][i].model * m_aux_bbox_max;
-                        bbbox_min = barco[j][i].model * m_aux_bbox_mix;
-                        if(Bbox_collision(bbbox_min,bbbox_max,mbbox_min,mbbox_max))
+                        bbbox_max = barcop[j][i].model * m_aux_bbox_max;
+                        bbbox_min = barcop[j][i].model * m_aux_bbox_mix;
+                        if(Bbox_collision(bbbox_min,bbbox_max,mbbox_min,mbbox_max)&& Bbox_collision(pbbox_min,pbbox_max,mbbox_min,mbbox_max))
                         {
                             printf("morreu\n");
+                            if(!missil_me)
+                            {
+                                barco[j][i].model = barco[j][i].model*Matrix_Rotate_X(3.14/2);
+                            }
                             barco[j][i].alive = false;
                             t=1;
                             chaoAtual.seen = true;
-                            Chao[posxatual][posyatual] = chaoAtual;
+                            Chao[posxatualm][posyatualm] = chaoAtual;
 
                         }
                     }
@@ -641,14 +688,21 @@ int main(int argc, char* argv[])
                 if(Bbox_collision(pbbox_min,pbbox_max,mbbox_min,mbbox_max))
                 {
                     chaoAtual.seen = true;
-                    Chao[posxatual][posyatual] = chaoAtual;
+                    Chao[posxatualm][posyatualm] = chaoAtual;
                 }
             }
             if(t>=1)
             {
-                missil_on = 0;
                 camera_position_c = camera_position_c_save;
                 camera_position_c.w = 1;
+                if(missil_me)
+                {
+                    missil_me = 0;
+                }
+                else
+                {
+                    missil_me = 1;
+                }
             }
         }
 
@@ -668,9 +722,20 @@ int main(int argc, char* argv[])
                     glUniform1i(object_id_uniform, BARCO);
                     DrawVirtualObject("ship");
                 }
+                else if(!barco[i][j].alido && !barco[i][j].alive)
+                {
+                    glUniformMatrix4fv(model_uniform, 1, GL_FALSE, glm::value_ptr(barco[i][j].model));
+                    glUniform1i(object_id_uniform, BARCO);
+                    DrawVirtualObject("ship");
+                }
             }
         }
-
+        if(missil_on && gamestart)
+        {
+            glUniformMatrix4fv(model_uniform, 1, GL_FALSE, glm::value_ptr(modelball));
+            glUniform1i(object_id_uniform, ball);
+            DrawVirtualObject("sphere");
+        }
         glDisable(GL_CULL_FACE);
         // Pegamos um vértice com coordenadas de modelo (0.5, 0.5, 0.5, 1) e o
         // passamos por todos os sistemas de coordenadas armazenados nas
@@ -1578,9 +1643,9 @@ void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mod)
     }
     if(key == GLFW_KEY_ENTER && action == GLFW_PRESS&& missil_on!=1)
     {
-        missil_on = 1;
+        gamestart = 1;
+        missil_me = 1;
         t = 0;
-        chaoAtual = Chao[posx][posy];
         posxatual = posx;
         posyatual = posy;
         camera_position_c_save = camera_position_c;
