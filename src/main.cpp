@@ -220,9 +220,9 @@ glm::vec4 camera_view_vector;
 // Número de texturas carregadas pela função LoadTextureImage()
 GLuint g_NumLoadedTextures = 0;
 grid Chao[10][10];
-int missil_on =0;
 int missil_me = 0;
 int gamestart = 0;
+int changegrid = 0;
 grid chaoAtual;
 int posxatual, posyatual;
 glm::vec4 camera_position_c_save = camera_position_c;
@@ -402,8 +402,10 @@ int main(int argc, char* argv[])
     glm::vec4 lancer_a = glm::vec4(-2, 0.0, (0+2*9)/2,1.0);
     glm::vec4 lancer_e = glm::vec4(2*10, 0.0,(0+2*9)/2,1.0);
     glm::vec4 pontosf;
+    int missil_on =0;
+    int kkk = 0;
     // Ficamos em loop, renderizando, até que o usuário feche a janela
-    while (!glfwWindowShouldClose(window))
+        while (!glfwWindowShouldClose(window))
     {
         // Aqui executamos as operações de renderização
 
@@ -578,33 +580,39 @@ int main(int argc, char* argv[])
         glUniform1i(object_id_uniform, PLANEE);
         DrawVirtualObject("plane");
         int repeted = 0;
-        if(Chao[posxatual][posyatual].seen && t==0)
+        if(gamestart)
         {
-            missil_on =0;
+            if(changegrid && Chao[posxatual][posyatual].seen && t==0)
+            {
+                printf("aqui");
+                missil_on =0;
+            }
+            else
+            {
+                missil_on = 1;
+            }
         }
-        else
-        {
-            missil_on = 1;
-        }
-        printf("%d", gamestart);
-        if(missil_on && gamestart)
+        if(gamestart && missil_on)
         {
             glm::vec4 pontos1[3];
             int x,y,posxatualm,posyatualm;
 
             if(missil_me)
             {
-
-                chaoAtual = Chao[posxatual][posyatual];
-                posxatualm = posxatual;
-                posyatualm = posyatual;
-                pontos1[0] = lancer_e;
-                pontos1[1].x = (lancer_e.x + chaoAtual.pos.x)/2;
-                pontos1[1].y = 10.0;
-                pontos1[1].z = (lancer_e.z + chaoAtual.pos.z)/2;
-                pontos1[2] = chaoAtual.pos;
+                if(changegrid)
+                {
+                    chaoAtual = Chao[posxatual][posyatual];
+                    posxatualm = posxatual;
+                    posyatualm = posyatual;
+                    pontos1[0] = lancer_e;
+                    pontos1[1].x = (lancer_e.x + chaoAtual.pos.x)/2;
+                    pontos1[1].y = 10.0;
+                    pontos1[1].z = (lancer_e.z + chaoAtual.pos.z)/2;
+                    pontos1[2] = chaoAtual.pos;
+                    kkk = 1;
+                }
             }
-            else if(t==0)
+            else if(!missil_me && t==0)
             {
                 y = rand()%10;
                 x = rand()%5+5;
@@ -621,8 +629,9 @@ int main(int argc, char* argv[])
                 pontos1[1].y = 10.0;
                 pontos1[1].z = (lancer_a.z + chaoAtual.pos.z)/2;
                 pontos1[2] = chaoAtual.pos;
+                kkk=1;
             }
-            if(t<=1 && glfwGetTime()-tempo>=0.01 && desenhado)
+            if(t<=1 && glfwGetTime()-tempo>=0.01 && desenhado && kkk)
             {
                 desenhado = 0;
                 glm::vec4 pontos2[2];
@@ -691,18 +700,21 @@ int main(int argc, char* argv[])
                     Chao[posxatualm][posyatualm] = chaoAtual;
                 }
             }
-            if(t>=1)
+            if(t>=0.99)
             {
+                t=0;
                 camera_position_c = camera_position_c_save;
                 camera_position_c.w = 1;
                 if(missil_me)
                 {
                     missil_me = 0;
+                    changegrid = 0;
                 }
                 else
                 {
                     missil_me = 1;
                 }
+                kkk=0;
             }
         }
 
@@ -730,7 +742,7 @@ int main(int argc, char* argv[])
                 }
             }
         }
-        if(missil_on && gamestart)
+        if(missil_on && t!=0)
         {
             glUniformMatrix4fv(model_uniform, 1, GL_FALSE, glm::value_ptr(modelball));
             glUniform1i(object_id_uniform, ball);
@@ -1641,9 +1653,11 @@ void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mod)
             posy--;
         }
     }
-    if(key == GLFW_KEY_ENTER && action == GLFW_PRESS&& missil_on!=1)
+    if(key == GLFW_KEY_ENTER && action == GLFW_PRESS)
     {
+        changegrid = 1;
         gamestart = 1;
+        printf("gamestart = %d", gamestart);
         missil_me = 1;
         t = 0;
         posxatual = posx;
