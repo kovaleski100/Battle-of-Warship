@@ -675,7 +675,6 @@ int main(int argc, char* argv[])
                         bbbox_min = barcop[j][i].model * m_aux_bbox_mix;
                         if(Bbox_collision(bbbox_min,bbbox_max,mbbox_min,mbbox_max)&& Bbox_collision(pbbox_min,pbbox_max,mbbox_min,mbbox_max))
                         {
-                            printf("morreu\n");
                             if(!missil_me)
                             {
                                 barco[j][i].model = barco[j][i].model*Matrix_Rotate_X(3.14/2);
