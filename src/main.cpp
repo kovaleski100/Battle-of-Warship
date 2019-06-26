@@ -431,8 +431,7 @@ int main(int argc, char* argv[])
         // e ScrollCallback().
         glm::mat4 view;
 
-        ///if(missil_on && missil_me)
-        if(false)
+        if(missil_on && missil_me && changegrid)
         {
             camera_lookat_l = pontosf;
             float r = g_CameraDistance;
